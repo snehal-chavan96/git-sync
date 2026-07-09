@@ -1,4 +1,4 @@
-# GitHub Collaborator Repository Tracker
+# GitHub Sync
 
 A full-stack web application built with **Spring Boot, React.js, and MySQL** that centralizes and manages **accepted GitHub collaborator repositories** by synchronizing them from the GitHub REST API into a local database. The application eliminates the need to manually track repository collaborations, provides a unified view of all accepted collaborator repositories, and maintains a persistent local record through an on-demand synchronization mechanism.
 
