@@ -1,0 +1,96 @@
+# ==========================
+# OS Files
+# ==========================
+.DS_Store
+Thumbs.db
+
+# ==========================
+# IDE Files
+# ==========================
+.vscode/
+.idea/
+*.iml
+
+# ==========================
+# Logs
+# ==========================
+*.log
+logs/
+
+# ==========================
+# Environment Files
+# ==========================
+.env
+.env.*
+!.env.example
+
+# ==========================
+# Backend (Spring Boot)
+# ==========================
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Maven Wrapper (keep these)
+!backend/mvnw
+!backend/mvnw.cmd
+!backend/.mvn/wrapper/maven-wrapper.properties
+
+# Spring Boot
+backend/*.class
+
+# ==========================
+# Frontend (React/Vite)
+# ==========================
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Package Manager Logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# ==========================
+# Coverage
+# ==========================
+coverage/
+
+# ==========================
+# Temporary Files
+# ==========================
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# ==========================
+# Java
+# ==========================
+*.class
+*.jar
+*.war
+*.ear
+
+# ==========================
+# IntelliJ
+# ==========================
+out/
+
+# ==========================
+# Eclipse
+# ==========================
+.project
+.classpath
+.settings/
+
+# ==========================
+# NetBeans
+# ==========================
+nbproject/private/
+
+# ==========================
+# VS Code Test
+# ==========================
+.vscode-test/
