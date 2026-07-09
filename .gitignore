@@ -30,6 +30,12 @@ logs/
 backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
 
+# Ignore actual configuration
+backend/src/main/resources/application.properties
+
+# Track template configuration
+!backend/src/main/resources/application-example.properties
+
 # Maven Wrapper (keep these)
 !backend/mvnw
 !backend/mvnw.cmd
