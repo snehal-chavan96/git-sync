@@ -1,6 +1,5 @@
 package com.example.springboot.DemoWeb.service;
 
-import com.example.springboot.DemoWeb.config.SecurityConfig;
 import com.example.springboot.DemoWeb.repository.UserRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
