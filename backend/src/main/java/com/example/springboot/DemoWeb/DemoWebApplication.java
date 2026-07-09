@@ -8,6 +8,7 @@ public class DemoWebApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(DemoWebApplication.class, args);
+		System.out.println("Hello Git-Sync");
 	}
 
 }

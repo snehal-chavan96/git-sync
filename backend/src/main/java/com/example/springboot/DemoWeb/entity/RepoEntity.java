@@ -1,4 +1,4 @@
-package com.example.entity;
+package com.example.springboot.DemoWeb.entity;
 
 import java.time.LocalDateTime;
 

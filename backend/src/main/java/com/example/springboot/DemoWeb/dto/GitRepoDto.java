@@ -1,4 +1,4 @@
-package com.example.dto;
+package com.example.springboot.DemoWeb.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
