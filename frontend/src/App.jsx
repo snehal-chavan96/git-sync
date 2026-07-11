@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { INITIAL_REPOSITORIES } from './data';
+import { gitSyncService } from './services/gitSyncService';
 
 // Component imports
 import Navbar from './components/Navbar';
@@ -15,53 +15,13 @@ import EmptyState from './components/EmptyState';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
 
-// Potential repositories to discover during Sync
-const NEW_SYNC_REPOSITORIES = [
-  {
-    name: 'google-genai-sdk-express',
-    owner: 'google-labs',
-    url: 'https://github.com/google-labs/google-genai-sdk-express',
-    detectedAt: 'Just now',
-    languages: ['TypeScript', 'JavaScript'],
-    contributors: 12,
-    status: 'synced',
-    description: 'Ultra-lightweight Express.js proxy server optimized for secure, server-side Google Gemini SDK executions.',
-    stars: 890,
-    forks: 94
-  },
-  {
-    name: 'tailwind-v4-compiler',
-    owner: 'tailwindlabs',
-    url: 'https://github.com/tailwindlabs/tailwind-v4-compiler',
-    detectedAt: 'Just now',
-    languages: ['Rust', 'Go'],
-    contributors: 28,
-    status: 'synced',
-    description: 'High-performance interactive compiler optimizing CSS injection pipelines for Tailwind v4 layouts.',
-    stars: 1540,
-    forks: 88
-  },
-  {
-    name: 'motion-react-gesture-core',
-    owner: 'motion-labs',
-    url: 'https://github.com/motion-labs/motion-react-gesture-core',
-    detectedAt: 'Just now',
-    languages: ['TypeScript', 'React'],
-    contributors: 5,
-    status: 'synced',
-    description: 'Gesture control recognition engines custom-mapped to fluid Framer Motion canvas layout animations.',
-    stars: 310,
-    forks: 21
-  }
-];
-
 export default function App() {
   // Global theme state ('light' or 'dark') and viewMode ('grid' or 'list')
   const [theme, setTheme] = useState('light');
   const [viewLayout, setViewLayout] = useState('grid');
 
   // Repository & Filter States
-  const [repositories, setRepositories] = useState(INITIAL_REPOSITORIES);
+  const [repositories, setRepositories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('All');
   
@@ -70,7 +30,6 @@ export default function App() {
   const [syncProgress, setSyncProgress] = useState(0);
   const [autoSync, setAutoSync] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
-  const [newRepoIndex, setNewRepoIndex] = useState(0);
 
   // Add Repository Form State
   const [isAddingRepo, setIsAddingRepo] = useState(false);
@@ -90,6 +49,51 @@ export default function App() {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
+  // Fetch repositories on initial load
+  useEffect(() => {
+    const fetchRepos = async () => {
+      const data = await gitSyncService.getRepositories();
+      setRepositories(data);
+    };
+    fetchRepos();
+  }, []);
+
+  // Decoupled sync event listener registration (perfect for WebSockets later!)
+  useEffect(() => {
+    const unsubscribe = gitSyncService.subscribe((event) => {
+      switch (event.type) {
+        case 'start':
+          setIsSyncing(true);
+          setSyncProgress(10);
+          break;
+        case 'progress':
+          setSyncProgress(event.progress);
+          break;
+        case 'success':
+          setIsSyncing(false);
+          setSyncProgress(0);
+          setRepositories(event.data);
+          setToast({
+            message: event.message,
+            type: 'success'
+          });
+          break;
+        case 'error':
+          setIsSyncing(false);
+          setSyncProgress(0);
+          setToast({
+            message: event.message || 'Synchronization failed.',
+            type: 'error'
+          });
+          break;
+        default:
+          break;
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // Dismiss toast automatically
   useEffect(() => {
     if (toast) {
@@ -98,60 +102,10 @@ export default function App() {
     }
   }, [toast]);
 
-  // Handle Sync
-  const handleSync = () => {
+  // Handle Sync - initiated via the service call
+  const handleSync = async () => {
     if (isSyncing) return;
-    setIsSyncing(true);
-    setSyncProgress(10);
-    
-    const interval = setInterval(() => {
-      setSyncProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        const step = Math.floor(Math.random() * 25) + 15;
-        return Math.min(prev + step, 95);
-      });
-    }, 130);
-
-    setTimeout(() => {
-      clearInterval(interval);
-      setSyncProgress(100);
-      
-      setTimeout(() => {
-        setIsSyncing(false);
-        setSyncProgress(0);
-
-        // Add a discovered repository if available
-        if (newRepoIndex < NEW_SYNC_REPOSITORIES.length) {
-          const nextRepo = NEW_SYNC_REPOSITORIES[newRepoIndex];
-          const newRepo = {
-            ...nextRepo,
-            id: `discovered-${Date.now()}`,
-            detectedAt: new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC'
-          };
-          setRepositories(prev => [newRepo, ...prev]);
-          setNewRepoIndex(prev => prev + 1);
-          setToast({
-            message: `Successfully synchronized. Discovered and linked ${newRepo.owner}/${newRepo.name}!`,
-            type: 'success'
-          });
-        } else {
-          // Update timestamps of existing repositories
-          setRepositories(prev => 
-            prev.map(repo => ({
-              ...repo,
-              detectedAt: new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC'
-            }))
-          );
-          setToast({
-            message: 'Sync complete. All collaborations up-to-date.',
-            type: 'success'
-          });
-        }
-      }, 300);
-    }, 1200);
+    await gitSyncService.triggerSync();
   };
 
   // Handle Export to CSV
@@ -185,8 +139,8 @@ export default function App() {
     });
   };
 
-  // Handle Custom Add Repo
-  const handleAddCustomRepo = (e) => {
+  // Handle Custom Add Repo - persistent via API service call
+  const handleAddCustomRepo = async (e) => {
     e.preventDefault();
     if (!newRepoName || !newRepoOwner) {
       setToast({
@@ -196,28 +150,26 @@ export default function App() {
       return;
     }
 
-    const customRepo = {
-      id: `custom-${Date.now()}`,
-      name: newRepoName.toLowerCase().replace(/\s+/g, '-'),
-      owner: newRepoOwner.toLowerCase().replace(/\s+/g, ''),
-      url: `https://github.com/${newRepoOwner}/${newRepoName}`,
-      detectedAt: 'Just now',
-      languages: [newRepoLanguage],
-      contributors: 1,
-      status: 'synced',
-      description: newRepoDesc || 'Custom user-added collaboration repository managed in local space.',
-      stars: 1,
-      forks: 0
+    const newRepoData = {
+      name: newRepoName,
+      owner: newRepoOwner,
+      description: newRepoDesc,
+      language: newRepoLanguage
     };
 
-    setRepositories(prev => [customRepo, ...prev]);
+    const createdRepo = await gitSyncService.addRepository(newRepoData);
+    
+    // Fetch refreshed repository listing reflecting the insert
+    const updatedRepos = await gitSyncService.getRepositories();
+    setRepositories(updatedRepos);
+
     setIsAddingRepo(false);
     setNewRepoName('');
     setNewRepoOwner('');
     setNewRepoDesc('');
     
     setToast({
-      message: `Successfully added and tracked ${customRepo.owner}/${customRepo.name}!`,
+      message: `Successfully added and tracked ${createdRepo.owner}/${createdRepo.name}!`,
       type: 'success'
     });
   };
@@ -415,8 +367,8 @@ export default function App() {
       {/* Footer */}
       <Footer 
         onReset={() => {
-          setRepositories(INITIAL_REPOSITORIES);
-          setNewRepoIndex(0);
+          const resetRepos = gitSyncService.resetLocalState();
+          setRepositories(resetRepos);
           setIsPremium(false);
           setToast({ message: 'Reset collaboration synced state to defaults.', type: 'info' });
         }}
