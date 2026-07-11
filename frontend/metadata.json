@@ -1,0 +1,6 @@
+{
+  "name": "GitHub Collaboration Sync",
+  "description": "An elegant, minimalist dashboard to manage and sync team collaborations across GitHub repositories.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
