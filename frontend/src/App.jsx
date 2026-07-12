@@ -14,6 +14,7 @@ import ProPromoCard from './components/ProPromoCard';
 import EmptyState from './components/EmptyState';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
+import PremiumLoader from './components/PremiumLoader';
 
 export default function App() {
   // Global theme state ('light' or 'dark') and viewMode ('grid' or 'list')
@@ -22,6 +23,7 @@ export default function App() {
 
   // Repository & Filter States
   const [repositories, setRepositories] = useState([]);
+  const [isLoadingRepos, setIsLoadingRepos] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('All');
   
@@ -49,11 +51,20 @@ export default function App() {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
-  // Fetch repositories on initial load
+  // Fetch repositories on initial load with simulated telemetry delay for premium feel
   useEffect(() => {
     const fetchRepos = async () => {
-      const data = await gitSyncService.getRepositories();
-      setRepositories(data);
+      setIsLoadingRepos(true);
+      try {
+        const data = await gitSyncService.getRepositories();
+        // Give a tiny 800ms delay to display the beautiful premium telemetry loader on mount!
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setRepositories(data);
+      } catch (error) {
+        console.error('Failed to load repositories', error);
+      } finally {
+        setIsLoadingRepos(false);
+      }
     };
     fetchRepos();
   }, []);
@@ -280,86 +291,92 @@ export default function App() {
 
         {/* Grid and interactive cards */}
         <main className="flex-grow">
-          <motion.div 
-            layout
-            className={viewLayout === 'list' ? "flex flex-col gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}
-          >
-            <AnimatePresence mode="popLayout">
-              {filteredRepositories.map((repo) => (
-                <motion.div
-                  layout
-                  key={repo.id}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  transition={{ duration: 0.2 }}
-                  className={viewLayout === 'list' ? 'w-full' : ''}
-                >
-                  <RepositoryCard 
-                    repo={repo} 
-                    onSelectLanguage={setSelectedLanguage} 
-                    theme={theme}
-                    viewLayout={viewLayout}
-                  />
-                </motion.div>
-              ))}
-
-              {/* Add Custom Repository Block */}
-              <motion.div
+          {isLoadingRepos ? (
+            <PremiumLoader theme={theme} viewLayout={viewLayout} />
+          ) : (
+            <>
+              <motion.div 
                 layout
-                key="add-repo-form-wrapper"
-                className={viewLayout === 'list' ? 'w-full' : ''}
+                className={viewLayout === 'list' ? "flex flex-col gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}
               >
-                <AddRepositoryForm 
-                  isAddingRepo={isAddingRepo}
-                  setIsAddingRepo={setIsAddingRepo}
-                  newRepoName={newRepoName}
-                  setNewRepoName={setNewRepoName}
-                  newRepoOwner={newRepoOwner}
-                  setNewRepoOwner={setNewRepoOwner}
-                  newRepoLanguage={newRepoLanguage}
-                  setNewRepoLanguage={setNewRepoLanguage}
-                  newRepoDesc={newRepoDesc}
-                  setNewRepoDesc={setNewRepoDesc}
-                  onSubmit={handleAddCustomRepo}
-                  theme={theme}
-                />
+                <AnimatePresence mode="popLayout">
+                  {filteredRepositories.map((repo) => (
+                    <motion.div
+                      layout
+                      key={repo.id}
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ duration: 0.2 }}
+                      className={viewLayout === 'list' ? 'w-full' : ''}
+                    >
+                      <RepositoryCard 
+                        repo={repo} 
+                        onSelectLanguage={setSelectedLanguage} 
+                        theme={theme}
+                        viewLayout={viewLayout}
+                      />
+                    </motion.div>
+                  ))}
+
+                  {/* Add Custom Repository Block */}
+                  <motion.div
+                    layout
+                    key="add-repo-form-wrapper"
+                    className={viewLayout === 'list' ? 'w-full' : ''}
+                  >
+                    <AddRepositoryForm 
+                      isAddingRepo={isAddingRepo}
+                      setIsAddingRepo={setIsAddingRepo}
+                      newRepoName={newRepoName}
+                      setNewRepoName={setNewRepoName}
+                      newRepoOwner={newRepoOwner}
+                      setNewRepoOwner={setNewRepoOwner}
+                      newRepoLanguage={newRepoLanguage}
+                      setNewRepoLanguage={setNewRepoLanguage}
+                      newRepoDesc={newRepoDesc}
+                      setNewRepoDesc={setNewRepoDesc}
+                      onSubmit={handleAddCustomRepo}
+                      theme={theme}
+                    />
+                  </motion.div>
+
+                  {/* Pro Promotion Action Card */}
+                  <motion.div
+                    layout
+                    key="pro-promo-card-wrapper"
+                    className={viewLayout === 'list' ? 'w-full' : ''}
+                  >
+                    <ProPromoCard 
+                      isPremium={isPremium}
+                      onTogglePremium={() => {
+                        setIsPremium(!isPremium);
+                        setToast({
+                          message: isPremium 
+                            ? 'Workspace tier reverted back to standard community space.' 
+                            : 'Upgrade successful! Welcome to Sync Pro. Multi-node synchronization is now live.',
+                          type: 'success'
+                        });
+                      }}
+                      theme={theme}
+                    />
+                  </motion.div>
+                </AnimatePresence>
               </motion.div>
 
-              {/* Pro Promotion Action Card */}
-              <motion.div
-                layout
-                key="pro-promo-card-wrapper"
-                className={viewLayout === 'list' ? 'w-full' : ''}
-              >
-                <ProPromoCard 
-                  isPremium={isPremium}
-                  onTogglePremium={() => {
-                    setIsPremium(!isPremium);
-                    setToast({
-                      message: isPremium 
-                        ? 'Workspace tier reverted back to standard community space.' 
-                        : 'Upgrade successful! Welcome to Sync Pro. Multi-node synchronization is now live.',
-                      type: 'success'
-                    });
+              {/* Empty Filtering Fallback State */}
+              {filteredRepositories.length === 0 && (
+                <EmptyState 
+                  searchQuery={searchQuery}
+                  selectedLanguage={selectedLanguage}
+                  onClearFilters={() => {
+                    setSearchQuery('');
+                    setSelectedLanguage('All');
                   }}
                   theme={theme}
                 />
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-
-          {/* Empty Filtering Fallback State */}
-          {filteredRepositories.length === 0 && (
-            <EmptyState 
-              searchQuery={searchQuery}
-              selectedLanguage={selectedLanguage}
-              onClearFilters={() => {
-                setSearchQuery('');
-                setSelectedLanguage('All');
-              }}
-              theme={theme}
-            />
+              )}
+            </>
           )}
         </main>
       </div>
