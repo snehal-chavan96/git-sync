@@ -11,6 +11,8 @@
 
 import { INITIAL_REPOSITORIES } from '../data';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/git-sync';
+
 // Potential repositories to discover during local Sync simulation
 const NEW_SYNC_REPOSITORIES = [
   {
